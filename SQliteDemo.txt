@@ -1,0 +1,321 @@
+DatabaseHelper.java
+
+package com.example.sqlitedemo;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+import androidx.annotation.Nullable;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
+
+    public static final String DATABASE_NAME = "Student";
+    public static final String TABLE_NAME = "TblStudent";
+    public static final String COL_1 = "ID";
+    public static final String COL_2 = "NAME";
+    public static final String COL_3 = "SURNAME";
+    public static final String COL_4 = "MARKS";
+
+    public DatabaseHelper(@Nullable Context context) {
+        super(context, DATABASE_NAME, null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase sqLiteDatabase) {
+        sqLiteDatabase.execSQL("create table " + TABLE_NAME + " (ID INTEGER PRIMARY KEY AUTOINCREMENT,NAME TEXT, SURNAME TEXT, MARKS INTEGER) ");
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS "+TABLE_NAME);
+        onCreate(sqLiteDatabase);
+    }
+
+    public boolean insertData(String name,String surname,String marks){
+        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COL_2,name);
+        contentValues.put(COL_3,surname);
+        contentValues.put(COL_4,marks);
+        long result = sqLiteDatabase.insert(TABLE_NAME,null,contentValues);
+        if(result == -1)
+            return  false;
+        else
+            return true;
+    }
+
+    public Cursor getAllData(){
+        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+        Cursor res = sqLiteDatabase.rawQuery("select * from " + TABLE_NAME,null);
+        return res;
+    }
+
+    public boolean UpdateData(String id,String name,String surname,String marks){
+        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COL_1,id);
+        contentValues.put(COL_2,name);
+        contentValues.put(COL_3,surname);
+        contentValues.put(COL_4,marks);
+        sqLiteDatabase.update(TABLE_NAME,contentValues,"ID = ?",new String[] { id });
+        return true;
+    }
+
+    public Integer deleteData(String id){
+        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+        return sqLiteDatabase.delete(TABLE_NAME,"Id = ? ",new String[] { id });
+    }
+}
+
+Mainactivity.java
+
+package com.example.sqlitedemo;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.database.Cursor;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
+public class MainActivity extends AppCompatActivity {
+    DatabaseHelper mydb;
+    EditText ename,esurname,emarks,eid;
+    Button badd,bview,bedit,bdelete;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        mydb = new DatabaseHelper(this);
+
+        eid = (EditText) findViewById(R.id.id1);
+        ename = (EditText) findViewById(R.id.editTextTextPersonName3);
+        esurname = (EditText) findViewById(R.id.editTextTextPersonName4);
+        emarks = (EditText) findViewById(R.id.editTextTextPersonName5);
+        badd = (Button) findViewById(R.id.buttonadd);
+        bview = (Button) findViewById(R.id.btnview);
+        bedit = (Button) findViewById(R.id.btnedit);
+        bdelete = (Button) findViewById(R.id.btndelete);
+        AddData();
+        ViewAll();
+        updateData();
+        deleteData();
+        deleteData();
+    }
+
+    public void deleteData(){
+        bdelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Integer deleterow = mydb.deleteData(eid.getText().toString());
+                if(deleterow > 0)
+                    Toast.makeText(MainActivity.this,"Data Deleted",Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(MainActivity.this,"Data not Deleted",Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public void updateData(){
+        bedit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean isEdit = mydb.UpdateData(eid.getText().toString(),ename.getText().toString(),esurname.getText().toString(),emarks.getText().toString());
+                if(isEdit == true)
+                    Toast.makeText(MainActivity.this,"Data Updated",Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(MainActivity.this,"Data not Updated",Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public void AddData() {
+        badd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                boolean isInserted = mydb.insertData(ename.getText().toString(),
+                                esurname.getText().toString(),
+                                emarks.getText().toString());
+                if(isInserted == true)
+                    Toast.makeText(MainActivity.this,"Data Inserted",Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(MainActivity.this,"Data not Inserted",Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public  void ViewAll(){
+        bview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Cursor res = mydb.getAllData();
+                if(res.getCount() == 0){
+                    showMessage("Error","No Data is Available");
+                    return;
+                }
+
+                StringBuffer buffer = new StringBuffer();
+                while (res.moveToNext()){
+                    buffer.append("Id :" + res.getString(0)+ "\n");
+                    buffer.append("Name :" + res.getString(1)+ "\n");
+                    buffer.append("Surname :" + res.getString(2)+ "\n");
+                    buffer.append("Marks :" + res.getString(3)+ "\n\n");
+                }
+
+                showMessage("Data",buffer.toString());
+            }
+        });
+    }
+
+    public void showMessage(String title, String Message){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true);
+        builder.setTitle(title);
+        builder.setMessage(Message);
+        builder.show();
+    }
+}
+
+Activity_main.design
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btndelete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="56dp"
+        android:layout_marginTop="35dp"
+        android:text="Delete"
+        app:layout_constraintStart_toEndOf="@+id/btnedit"
+        app:layout_constraintTop_toBottomOf="@+id/btnview" />
+
+    <TextView
+        android:id="@+id/textView9"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Name"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.152"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.105" />
+
+    <TextView
+        android:id="@+id/textView7"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="56dp"
+        android:layout_marginTop="32dp"
+        android:text="Surname"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView9" />
+
+    <TextView
+        android:id="@+id/textView8"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="56dp"
+        android:layout_marginTop="36dp"
+        android:text="Marks"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+    <EditText
+        android:id="@+id/editTextTextPersonName3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="59dp"
+        android:ems="10"
+        android:inputType="textPersonName"
+        app:layout_constraintStart_toEndOf="@+id/textView9"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/editTextTextPersonName4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="9dp"
+        android:ems="10"
+        android:inputType="textPersonName"
+        app:layout_constraintStart_toEndOf="@+id/textView7"
+        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName3" />
+
+    <EditText
+        android:id="@+id/editTextTextPersonName5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="4dp"
+        android:ems="10"
+        android:inputType="textPersonName"
+        app:layout_constraintStart_toEndOf="@+id/textView8"
+        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName4" />
+
+    <Button
+        android:id="@+id/buttonadd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="64dp"
+        android:layout_marginTop="76dp"
+        android:text="Add"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName5" />
+
+    <Button
+        android:id="@+id/btnview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="47dp"
+        android:layout_marginTop="76dp"
+        android:text="View Data"
+        app:layout_constraintStart_toEndOf="@+id/buttonadd"
+        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName5" />
+
+    <Button
+        android:id="@+id/btnedit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="64dp"
+        android:layout_marginTop="37dp"
+        android:text="Edit"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/buttonadd" />
+
+    <TextView
+        android:id="@+id/textView10"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="56dp"
+        android:layout_marginTop="24dp"
+        android:text="iId"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView8" />
+
+    <EditText
+        android:id="@+id/id1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="58dp"
+        android:layout_marginTop="16dp"
+        android:ems="10"
+        android:inputType="textPersonName"
+        app:layout_constraintStart_toEndOf="@+id/textView10"
+        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName5" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
